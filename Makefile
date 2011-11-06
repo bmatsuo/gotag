@@ -9,6 +9,8 @@ include $(GOROOT)/src/Make.inc
 
 TARG=gotag
 GOFILES=\
+		script.go\
+		repository.go\
         options.go\
         gotag.go\
 
