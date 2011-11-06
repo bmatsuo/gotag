@@ -90,22 +90,28 @@ func main() {
 			hasCurrentTag = true
 		}
 	}
-	dodelete := false
+	force := false
 	if hasCurrentTag {
-		fmt.Printf("Tag %s found. It must be deleted.\n", gotag)
-		if dodelete {
+		fmt.Printf("found tag %s\n", gotag)
+		if force {
+			fmt.Printf("deleting %s\n", gotag)
 			Must(git.TagDelete(gotag))
+		} else {
+			fmt.Fprintf(os.Stderr, "use -f flag to update %s\n", gotag)
+			os.Exit(1)
 		}
-	} else {
-		log.Printf("No tag %s", gotag)
 	}
 
-	Must(git.Tag(gotag, fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)))
+	annotation := fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)
+	fmt.Fprintf(os.Stderr, "creating tag %s %#v\n", gotag, annotation)
+	Must(git.Tag(gotag, annotation))
 	log.Printf("Tagged")
 	tags, err = git.Tags()
 	Must(err)
 	fmt.Println(strings.Join(tags, ":"))
 	Must(git.TagDelete(gotag))
+	log.Printf("Deleted")
+	tags, err = git.Tags()
 	tags, err = git.Tags()
 	Must(err)
 	fmt.Println(strings.Join(tags, ":"))
