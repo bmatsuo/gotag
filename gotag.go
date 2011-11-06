@@ -11,23 +11,76 @@ package main
  */
 
 import (
+	"github.com/bmatsuo/go-script/script"
+	"runtime"
+	"strconv"
 	"strings"
-    "log"
-    "fmt"
-    "os"
+	"log"
+	"fmt"
+	"os"
 )
+
+var archlinker = map[string]string{
+	"amd64": "6l",
+	"386":   "8l",
+	"arm":   "5l",
+}
+
+func Must(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+var GoLinker = archlinker[runtime.GOARCH]
+
+func GetGoVersion() (version string, revision int, err error) {
+	if GoLinker == "" {
+		panic(fmt.Errorf("unknown architechture %s", runtime.GOARCH))
+	}
+	var p []byte
+	p, _, err = script.Output(script.Bash.NewScript(fmt.Sprintf("%s -V", GoLinker)))
+	if err != nil {
+		return
+	}
+	pieces := strings.Fields(string(p))
+	if len(pieces) < 2 {
+		err = fmt.Errorf("Didn't understand Go version %s", string(p))
+	}
+	version = pieces[len(pieces)-2]
+	revision, err = strconv.Atoi(pieces[len(pieces)-1])
+	return
+}
+
+func GoRepositoryTag(version string) string { return "go." + version }
 
 var opt options
 
 func main() {
-    opt = parseFlags()
-	git, err := NewGitRepo(os.Args[1])
-	if err != nil {
-		log.Fatal(err)
+	opt = parseFlags()
+
+	gover, gorev, err := GetGoVersion()
+	log.Printf("  Linker: %s", GoLinker)
+	log.Printf(" Version: %s", gover)
+	log.Printf("Revision: %d", gorev)
+	log.Printf("     Tag: %s", GoRepositoryTag(gover))
+
+	root := "."
+	if len(os.Args) > 1 {
+		root = os.Args[1]
 	}
-	tags, err := git.Tags()
-	if err != nil {
-		log.Fatal(err)
-	}
+
+	var project GoProject
+	project, err = NewProject(root)
+	Must(err)
+	Must(BuildAndClean(project))
+
+	var git Repository
+	git, err = NewGitRepo(root)
+	Must(err)
+
+	var tags []string
+	tags, err = git.Tags()
+	Must(err)
 	fmt.Println(strings.Join(tags, ":"))
 }
