@@ -17,5 +17,6 @@ type Repository interface {
 	Root() string
 	Name() (string, error)
 	Tags() ([]string, error)
+	TagDelete(string) error
+	Tag(string, ...interface{}) error
 }
-

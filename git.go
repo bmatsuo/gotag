@@ -68,6 +68,39 @@ func (repo *gitRepo) Tags() ([]string, error) {
 	if errexec != nil {
 		return nil, errexec
 	}
-	tags := strings.Fields(strings.Trim(string(tagout),"\n"))
+	tags := strings.Fields(strings.Trim(string(tagout), "\n"))
 	return tags, nil
+}
+
+func (repo *gitRepo) TagDelete(tag string) error {
+	tagcmd := fmt.Sprintf(`git tag -d %s`, tag)
+	if repo.root != "." {
+		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(repo.root), tagcmd)
+	}
+	_, errexec := repo.shell.NewScript(tagcmd).Execute()
+	return errexec
+}
+
+// If there is an extra value, it is used as a tag annotation.
+// If there are two extra values, the second is used as a commit hash.
+func (repo *gitRepo) Tag(name string, extra ...interface{}) error {
+	tagcmd := fmt.Sprintf(`git tag`)
+	if len(extra) > 0 {
+		note := extra[0]
+		switch note.(type) {
+		case string:
+			tagcmd = fmt.Sprintf(`%s -a -m %s`, tagcmd, script.ShellQuote(note.(string)))
+		default:
+			return errors.New("expected string annotation")
+		}
+	}
+	tagcmd = fmt.Sprintf(`%s %s`, tagcmd, name)
+	if len(extra) > 1 {
+		tagcmd = fmt.Sprintf(`%s %s`, tagcmd, script.ShellQuote(extra[0].(string)))
+	}
+	if repo.root != "." {
+		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(repo.root), tagcmd)
+	}
+	_, errexec := repo.shell.NewScript(tagcmd).Execute()
+	return errexec
 }

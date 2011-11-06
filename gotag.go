@@ -63,7 +63,8 @@ func main() {
 	log.Printf("  Linker: %s", GoLinker)
 	log.Printf(" Version: %s", gover)
 	log.Printf("Revision: %d", gorev)
-	log.Printf("     Tag: %s", GoRepositoryTag(gover))
+	gotag := GoRepositoryTag(gover)
+	log.Printf("     Tag: %s", gotag)
 
 	root := "."
 	if len(os.Args) > 1 {
@@ -80,6 +81,31 @@ func main() {
 	Must(err)
 
 	var tags []string
+	tags, err = git.Tags()
+	Must(err)
+
+	hasCurrentTag := false
+	for i := range tags {
+		if gotag == tags[i] {
+			hasCurrentTag = true
+		}
+	}
+	dodelete := false
+	if hasCurrentTag {
+		fmt.Printf("Tag %s found. It must be deleted.\n", gotag)
+		if dodelete {
+			Must(git.TagDelete(gotag))
+		}
+	} else {
+		log.Printf("No tag %s", gotag)
+	}
+
+	Must(git.Tag(gotag, fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)))
+	log.Printf("Tagged")
+	tags, err = git.Tags()
+	Must(err)
+	fmt.Println(strings.Join(tags, ":"))
+	Must(git.TagDelete(gotag))
 	tags, err = git.Tags()
 	Must(err)
 	fmt.Println(strings.Join(tags, ":"))
