@@ -11,6 +11,7 @@ package main
  */
 
 import (
+	"github.com/bmatsuo/go-script/script"
 	"fmt"
 	"os"
 )
@@ -22,7 +23,7 @@ type Repository interface {
 
 type gitRepo struct {
 	root  string
-	shell Scriptor
+	shell script.Scriptor
 }
 
 func NewGitRepo(root string) (repo *gitRepo, err error) {
