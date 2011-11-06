@@ -10,37 +10,12 @@ package main
  *  Description: 
  */
 
-import (
-	"github.com/bmatsuo/go-script/script"
-	"fmt"
-	"os"
-)
+import ()
 
 type Repository interface {
+	Type() string
 	Root() string
-	Tags() []string
+	Name() (string, error)
+	Tags() ([]string, error)
 }
 
-type gitRepo struct {
-	root  string
-	shell script.Scriptor
-}
-
-func NewGitRepo(root string) (repo *gitRepo, err error) {
-	repo = new(gitRepo)
-	repo.root = root
-	err = repo.checkRoot()
-	return
-}
-
-func (repo *gitRepo) checkRoot() error {
-	repo_dir := repo.root + "/.git"
-	dir, staterr := os.Stat(repo_dir)
-	if staterr != nil {
-		return staterr
-	}
-	if !dir.IsDirectory() {
-		return fmt.Errorf("Git file %s is not a directory.")
-	}
-	return nil
-}

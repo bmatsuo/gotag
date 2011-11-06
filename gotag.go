@@ -11,13 +11,23 @@ package main
  */
 
 import (
-    //"log"
-    //"fmt"
-    //"os"
+	"strings"
+    "log"
+    "fmt"
+    "os"
 )
 
 var opt options
 
 func main() {
     opt = parseFlags()
+	git, err := NewGitRepo(os.Args[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+	tags, err := git.Tags()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(strings.Join(tags, ":"))
 }
