@@ -96,7 +96,13 @@ func (repo *gitRepo) Tag(name string, extra ...interface{}) error {
 	}
 	tagcmd = fmt.Sprintf(`%s %s`, tagcmd, name)
 	if len(extra) > 1 {
-		tagcmd = fmt.Sprintf(`%s %s`, tagcmd, script.ShellQuote(extra[0].(string)))
+		commit := extra[1]
+		switch commit.(type) {
+		case string:
+			tagcmd = fmt.Sprintf(`%s %s`, tagcmd, script.ShellQuote(commit.(string)))
+		default:
+			return errors.New("expected string commit hash")
+		}
 	}
 	if repo.root != "." {
 		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(repo.root), tagcmd)
