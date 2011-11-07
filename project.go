@@ -96,37 +96,29 @@ func (p *Project) Name() (string, error) {
 }
 
 func (p *Project) Build() error {
-	tagcmd := `gomake`
-	if p.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(p.root), tagcmd)
-	}
-	_, err := p.shell.NewScript(tagcmd).Execute()
+	tagcmd := ShellCmd{"gomake"}
+	tagscript := CmdTemplateScript(p.shell, p.root, tagcmd)
+	_, err := tagscript.Execute()
 	return err
 }
 
 func (p *Project) Clean() error {
-	tagcmd := `gomake clean`
-	if p.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(p.root), tagcmd)
-	}
-	_, err := p.shell.NewScript(tagcmd).Execute()
+	tagcmd := ShellCmd{"gomake", "clean"}
+	tagscript := CmdTemplateScript(p.shell, p.root, tagcmd)
+	_, err := tagscript.Execute()
 	return err
 }
 
 func (p *Project) Nuke() error {
-	tagcmd := `gomake nuke`
-	if p.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(p.root), tagcmd)
-	}
-	_, err := p.shell.NewScript(tagcmd).Execute()
+	tagcmd := ShellCmd{"gomake", "nuke"}
+	tagscript := CmdTemplateScript(p.shell, p.root, tagcmd)
+	_, err := tagscript.Execute()
 	return err
 }
 
 func (p *Project) Test() error {
-	tagcmd := `gotest`
-	if p.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(p.root), tagcmd)
-	}
-	_, err := p.shell.NewScript(tagcmd).Execute()
+	tagcmd := ShellCmd{`gotest`}
+	tagscript := CmdTemplateScript(p.shell, p.root, tagcmd)
+	_, err := tagscript.Execute()
 	return err
 }

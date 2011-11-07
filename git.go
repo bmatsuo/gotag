@@ -60,11 +60,9 @@ func (repo *gitRepo) Name() (string, error) {
 }
 
 func (repo *gitRepo) Tags() ([]string, error) {
-	tagcmd := `git tag -l`
-	if repo.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(repo.root), tagcmd)
-	}
-	tagout, _, errexec := script.Output(repo.shell.NewScript(tagcmd))
+	tagcmd := ShellCmd{"git", "tag", "-l"}
+	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
+	tagout, _, errexec := script.Output(tagscript)
 	if errexec != nil {
 		return nil, errexec
 	}
@@ -73,40 +71,25 @@ func (repo *gitRepo) Tags() ([]string, error) {
 }
 
 func (repo *gitRepo) TagDelete(tag string) error {
-	tagcmd := fmt.Sprintf(`git tag -d %s`, tag)
-	if repo.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(repo.root), tagcmd)
-	}
-	_, errexec := repo.shell.NewScript(tagcmd).Execute()
-	return errexec
+	tagcmd := ShellCmd{"git", "tag", "-d", tag}
+	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
+	_, err := tagscript.Execute()
+	return err
 }
 
 // If there is an extra value, it is used as a tag annotation.
-// If there are two extra values, the second is used as a commit hash.
-func (repo *gitRepo) Tag(name string, extra ...interface{}) error {
-	tagcmd := fmt.Sprintf(`git tag`)
+// Remaining extra values (e.g. commit hash) will be appended to the command.
+func (repo *gitRepo) Tag(name string, extra ...string) error {
+	tagcmd := ShellCmd{"git", "tag"}
 	if len(extra) > 0 {
-		note := extra[0]
-		switch note.(type) {
-		case string:
-			tagcmd = fmt.Sprintf(`%s -a -m %s`, tagcmd, script.ShellQuote(note.(string)))
-		default:
-			return errors.New("expected string annotation")
-		}
+		tagcmd = append(tagcmd,
+			append(
+				ShellCmd{"-a", "-m", extra[0], name},
+				ShellCmd(extra[1:])...)...)
+	} else {
+		tagcmd = append(tagcmd, name)
 	}
-	tagcmd = fmt.Sprintf(`%s %s`, tagcmd, name)
-	if len(extra) > 1 {
-		commit := extra[1]
-		switch commit.(type) {
-		case string:
-			tagcmd = fmt.Sprintf(`%s %s`, tagcmd, script.ShellQuote(commit.(string)))
-		default:
-			return errors.New("expected string commit hash")
-		}
-	}
-	if repo.root != "." {
-		tagcmd = fmt.Sprintf("cd %s\n%s", script.ShellQuote(repo.root), tagcmd)
-	}
-	_, errexec := repo.shell.NewScript(tagcmd).Execute()
-	return errexec
+	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
+	_, err := tagscript.Execute()
+	return err
 }

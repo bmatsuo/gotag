@@ -12,13 +12,60 @@ package main
 
 import (
 	"github.com/bmatsuo/go-script/script"
+	"template"
 	"runtime"
 	"strconv"
 	"strings"
+	"bytes"
 	"log"
 	"fmt"
 	"os"
 )
+
+var tfuncs = template.FuncMap{
+	"quote": func(x interface{}) (string, error) {
+		switch x.(type) {
+		case string:
+			return script.ShellQuote(x.(string)), nil
+		}
+		return "", fmt.Errorf("argument %#v is not a string", x)
+	},
+}
+
+var cmdtemplates = `
+{{/* Outputs a shell command given a list of strings (executable + args) */}}
+	{{define "cmd"}}{{if ""}}
+		{{end}}{{with $cmd := .}}{{range $i, $arg := $cmd}}{{if ""}}
+			{{end}}{{if $i}} {{end}}{{quote $arg}}{{end}}{{end}}{{end}}
+
+{{/* Outputs a list of comands .cmds. If .dir is set, the working directory is set with cd*/}}
+	{{define "script"}}{{if ""}}
+				{{end}}{{if .dir}}cd {{quote .dir}}
+{{end}}{{if ""}}
+				{{end}}{{range $i, $cmd := .cmds}}{{if $i}}
+{{end}}{{if ""}}
+				{{end}}{{template "cmd" $cmd}}{{end}}{{end}}
+`
+
+var templates = template.SetMust(new(template.Set).Funcs(tfuncs).Parse(cmdtemplates))
+
+type ShellCmd []string
+
+func CmdTemplateScript(sh script.Scriptor, dir string, cmds ...ShellCmd) script.Script {
+	if sh == nil {
+		panic("nil scriptor")
+	}
+	var d string
+	if dir != "." {
+		d = dir
+	}
+	buff := new(bytes.Buffer)
+	err := templates.Template("script").Execute(buff, map[string]interface{}{"dir": d, "cmds": cmds})
+	if err != nil {
+		log.Println(err)
+	}
+	return sh.NewScript(string(buff.Bytes()))
+}
 
 var archlinker = map[string]string{
 	"amd64": "6l",
@@ -101,6 +148,10 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	CmdTemplateScript(script.Bash, "some/path",
+		ShellCmd{"echo", "hello, worlrd"},
+		ShellCmd{"cd", "google"},
+		ShellCmd{"goma'ke", "nuke"})
 
 	annotation := fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)
 	fmt.Fprintf(os.Stderr, "creating tag %s %#v\n", gotag, annotation)
