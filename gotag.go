@@ -106,16 +106,17 @@ var opt options
 func main() {
 	opt = parseFlags()
 
-	gover, gorev, err := GetGoVersion()
-	log.Printf("  Linker: %s", GoLinker)
-	log.Printf(" Version: %s", gover)
-	log.Printf("Revision: %d", gorev)
-	gotag := GoRepositoryTag(gover)
-	log.Printf("     Tag: %s", gotag)
+	root := opt.Root
+	force := opt.Force
+	verbose := opt.Verbose
 
-	root := "."
-	if len(os.Args) > 1 {
-		root = os.Args[1]
+	gover, gorev, err := GetGoVersion()
+	gotag := GoRepositoryTag(gover)
+	if verbose {
+		log.Printf("  Linker: %s", GoLinker)
+		log.Printf(" Version: %s", gover)
+		log.Printf("Revision: %d", gorev)
+		log.Printf("     Tag: %s", gotag)
 	}
 
 	var project GoProject
@@ -131,39 +132,33 @@ func main() {
 	tags, err = git.Tags()
 	Must(err)
 
+	// Look for a tag named for the current version.
 	hasCurrentTag := false
 	for i := range tags {
-		if gotag == tags[i] {
-			hasCurrentTag = true
+		hasCurrentTag = gotag == tags[i]
+		if hasCurrentTag {
+			break
 		}
 	}
-	force := false
+
+	// If found a try to delete it.
 	if hasCurrentTag {
-		fmt.Printf("found tag %s\n", gotag)
+		fmt.Printf("Found tag %s\n", gotag)
 		if force {
-			fmt.Printf("deleting %s\n", gotag)
 			Must(git.TagDelete(gotag))
 		} else {
 			fmt.Fprintf(os.Stderr, "use -f flag to update %s\n", gotag)
 			os.Exit(1)
 		}
 	}
-	CmdTemplateScript(script.Bash, "some/path",
-		ShellCmd{"echo", "hello, worlrd"},
-		ShellCmd{"cd", "google"},
-		ShellCmd{"goma'ke", "nuke"})
 
+	// Create the new tag.
 	annotation := fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)
-	fmt.Fprintf(os.Stderr, "creating tag %s %#v\n", gotag, annotation)
-	Must(git.Tag(gotag, annotation))
-	log.Printf("Tagged")
-	tags, err = git.Tags()
-	Must(err)
-	fmt.Println(strings.Join(tags, ":"))
-	Must(git.TagDelete(gotag))
-	log.Printf("Deleted")
-	tags, err = git.Tags()
-	tags, err = git.Tags()
-	Must(err)
-	fmt.Println(strings.Join(tags, ":"))
+	if opt.Commit != "" {
+		fmt.Fprintf(os.Stderr, "Creating tag %s %#v (%s)\n", gotag, annotation, opt.Commit)
+		Must(git.Tag(gotag, annotation, opt.Commit))
+	} else {
+		fmt.Fprintf(os.Stderr, "Creating tag %s %#v\n", gotag, annotation)
+		Must(git.Tag(gotag, annotation))
+	}
 }
