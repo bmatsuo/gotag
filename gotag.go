@@ -128,6 +128,14 @@ func main() {
 	git, err = NewGitRepo(root)
 	Must(err)
 
+	clean, err := git.IsClean()
+	Must(err)
+	if !clean {
+		fmt.Fprint(os.Stderr, "The repository has uncommited changes.\n")
+		fmt.Fprint(os.Stderr, "Commit the changes and run Gotag again.\n")
+		os.Exit(1)
+	}
+
 	if opt.Fetch {
 		fmt.Print("Fetching remote tags\n")
 		Must(git.TagsFetch())

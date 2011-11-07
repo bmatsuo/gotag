@@ -16,6 +16,7 @@ type Repository interface {
 	Type() string
 	Root() string
 	Name() (string, error)
+	IsClean() (bool, error)
 	Tags() ([]string, error)
 	TagsFetch() error
 	TagsPush() error

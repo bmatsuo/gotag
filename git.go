@@ -59,6 +59,19 @@ func (repo *gitRepo) Name() (string, error) {
 	return filepath.Base(abs), nil
 }
 
+func (repo *gitRepo) IsClean() (bool, error) {
+	tagcmd := ShellCmd{"git", "diff"}
+	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
+	tagout, _, errexec := script.Output(tagscript)
+	if errexec != nil {
+		return false, errexec
+	}
+	if len(tagout) > 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (repo *gitRepo) Tags() ([]string, error) {
 	tagcmd := ShellCmd{"git", "tag", "-l"}
 	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
