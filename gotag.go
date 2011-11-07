@@ -128,6 +128,11 @@ func main() {
 	git, err = NewGitRepo(root)
 	Must(err)
 
+	if opt.Fetch {
+		fmt.Print("Fetching remote tags\n")
+		Must(git.TagsFetch())
+	}
+
 	var tags []string
 	tags, err = git.Tags()
 	Must(err)
@@ -156,9 +161,14 @@ func main() {
 	annotation := fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)
 	if opt.Commit != "" {
 		fmt.Fprintf(os.Stderr, "Creating tag %s %#v (%s)\n", gotag, annotation, opt.Commit)
-		Must(git.Tag(gotag, annotation, opt.Commit))
+		Must(git.TagNew(gotag, annotation, opt.Commit))
 	} else {
 		fmt.Fprintf(os.Stderr, "Creating tag %s %#v\n", gotag, annotation)
-		Must(git.Tag(gotag, annotation))
+		Must(git.TagNew(gotag, annotation))
+	}
+
+	if opt.Push {
+		fmt.Fprintf(os.Stderr, "Pushing tags to remote repository\n")
+		Must(git.TagsPush())
 	}
 }

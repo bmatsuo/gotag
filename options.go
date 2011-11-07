@@ -33,6 +33,8 @@ var (
 //  TODO: Customize this struct with options for gotag
 type options struct {
 	Root    string
+	Fetch   bool
+	Push    bool
 	Force   bool
 	Commit  string
 	Verbose bool
@@ -42,6 +44,8 @@ type options struct {
 func setupFlags(opt *options) *flag.FlagSet {
 	fs := flag.NewFlagSet("gotag", flag.ExitOnError)
 	fs.StringVar(&opt.Commit, "commit", "", "Specify commit to tag.")
+	fs.BoolVar(&opt.Fetch, "fetch", true, "Fetch remote tags before creating new tags.")
+	fs.BoolVar(&opt.Push, "push", true, "Push newly created tags when finished.")
 	fs.BoolVar(&opt.Force, "f", false, "Delete existing tag if conflict exists.")
 	fs.BoolVar(&opt.Verbose, "v", false, "Verbose program output.")
 

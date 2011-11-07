@@ -17,6 +17,8 @@ type Repository interface {
 	Root() string
 	Name() (string, error)
 	Tags() ([]string, error)
+	TagsFetch() error
+	TagsPush() error
 	TagDelete(string) error
-	Tag(string, ...string) error
+	TagNew(string, ...string) error
 }

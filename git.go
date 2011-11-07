@@ -70,6 +70,20 @@ func (repo *gitRepo) Tags() ([]string, error) {
 	return tags, nil
 }
 
+func (repo *gitRepo) TagsPush() error {
+	tagcmd := ShellCmd{"git", "push", "--tags"}
+	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
+	_, err := tagscript.Execute()
+	return err
+}
+
+func (repo *gitRepo) TagsFetch() error {
+	tagcmd := ShellCmd{"git", "fetch", "--tags"}
+	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
+	_, err := tagscript.Execute()
+	return err
+}
+
 func (repo *gitRepo) TagDelete(tag string) error {
 	tagcmd := ShellCmd{"git", "tag", "-d", tag}
 	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
@@ -79,7 +93,7 @@ func (repo *gitRepo) TagDelete(tag string) error {
 
 // If there is an extra value, it is used as a tag annotation.
 // Remaining extra values (e.g. commit hash) will be appended to the command.
-func (repo *gitRepo) Tag(name string, extra ...string) error {
+func (repo *gitRepo) TagNew(name string, extra ...string) error {
 	tagcmd := ShellCmd{"git", "tag", name}
 	if len(extra) > 0 {
 		// Remove the name on the end, insert an annotation, append extra[1:].
