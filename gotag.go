@@ -168,7 +168,7 @@ func main() {
 	}
 
 	// Create the new tag.
-	annotation := fmt.Sprintf("Latest build for Go version %s %d", gover, gorev)
+	annotation := fmt.Sprintf("Latest build for Go version %s", gover)
 	if opt.Commit != "" {
 		fmt.Fprintf(os.Stderr, "Creating tag %s %#v (%s)\n", gotag, annotation, opt.Commit)
 		Must(git.TagNew(gotag, annotation, opt.Commit))
