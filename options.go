@@ -11,6 +11,8 @@ package main
  */
 
 import (
+	"path/filepath"
+	"runtime"
 	"flag"
 	"fmt"
 	"os"
@@ -23,7 +25,9 @@ import (
 var (
 	// Set this variable to customize the help message header.
 	// For example, `gotag [options] action [arg2 ...]`.
-	CommandLineHelpUsage string
+	CommandLineHelpUsage = `Usage:  gotag [-f] [-fetch=false] [-push=false] [-commit=HASH]
+        gotag [-i] -u IMPORT
+`
 	// Set this variable to print a message after the option specifications.
 	// For example, "For more help:\n\tgotag help [action]"
 	CommandLineHelpFooter string
@@ -32,6 +36,9 @@ var (
 //  A struct that holds parsed option values.
 //  TODO: Customize this struct with options for gotag
 type options struct {
+	Update	string
+	Refresh bool
+	Install bool
 	Root    string
 	Fetch   bool
 	Push    bool
@@ -43,6 +50,8 @@ type options struct {
 //  Create a flag.FlagSet to parse the command line options/arguments.
 func setupFlags(opt *options) *flag.FlagSet {
 	fs := flag.NewFlagSet("gotag", flag.ExitOnError)
+	fs.StringVar(&opt.Update, "u", "", "Update tags in a package directory (don't make tags).")
+	fs.BoolVar(&opt.Install, "i", false, "Install IMPORT after updating with -u.")
 	fs.StringVar(&opt.Commit, "commit", "", "Specify commit to tag.")
 	fs.BoolVar(&opt.Fetch, "fetch", true, "Fetch remote tags before creating new tags.")
 	fs.BoolVar(&opt.Push, "push", true, "Push newly created tags when finished.")
@@ -55,20 +64,21 @@ func setupFlags(opt *options) *flag.FlagSet {
 
 //  Check the options for acceptable values. Panics or otherwise exits
 //  with a non-zero exitcode when errors are encountered.
-//  TODO: Make sure the gotag's flags are valid.
 func verifyFlags(opt *options, fs *flag.FlagSet) {
-	args := fs.Args()
-	if len(args) < 1 {
-		opt.Root = "."
-	} else {
-		opt.Root = args[0]
-	}
-	if info, err := os.Stat(opt.Root); err != nil {
-		fs.Usage()
-		fmt.Fprintf(os.Stderr, "stat error: %s\n", err.Error())
-	} else if !info.IsDirectory() {
-		fs.Usage()
-		fmt.Fprintf(os.Stderr, "ROOT %s is not a directory\n", opt.Root)
+	opt.Root = "."
+	if opt.Update != "" {
+		opt.Refresh = true
+		goroot := runtime.GOROOT()
+		opt.Root = filepath.Join(goroot, "src", "pkg", opt.Update)
+		if info, err := os.Stat(opt.Root); err != nil {
+			fs.Usage()
+			fmt.Fprintf(os.Stderr, "stat error: %s\n", err.Error())
+			os.Exit(1)
+		} else if !info.IsDirectory() {
+			fs.Usage()
+			fmt.Fprintf(os.Stderr, "expanded IMPORT %s is not a directory\n", opt.Root)
+			os.Exit(1)
+		}
 	}
 }
 

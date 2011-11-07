@@ -101,16 +101,9 @@ func GetGoVersion() (version string, revision int, err error) {
 
 func GoRepositoryTag(version string) string { return "go." + version }
 
-var opt options
-
-func main() {
-	opt = parseFlags()
-
-	root := opt.Root
-	force := opt.Force
-	verbose := opt.Verbose
-
+func MakeTag(root string, force bool, verbose bool) {
 	gover, gorev, err := GetGoVersion()
+	Must(err)
 	gotag := GoRepositoryTag(gover)
 	if verbose {
 		log.Printf("  Linker: %s", GoLinker)
@@ -181,5 +174,32 @@ func main() {
 	if opt.Push {
 		fmt.Fprintf(os.Stderr, "Pushing tags to remote repository\n")
 		Must(git.TagsPush())
+	}
+}
+
+func UpdateTags(root, install string) {
+	var git Repository
+	var err error
+	git, err = NewGitRepo(root)
+	Must(err)
+	Must(git.TagsFetch())
+	if install != "" {
+		_, err := CmdTemplateScript(script.Bash, ".", ShellCmd{"goinstall", "-u", install}).Execute()
+		Must(err)
+	}
+}
+
+var opt options
+
+func main() {
+	opt = parseFlags()
+	if opt.Refresh {
+		if opt.Install {
+			UpdateTags(opt.Root, opt.Update)
+		} else {
+			UpdateTags(opt.Root, "")
+		}
+	} else {
+		MakeTag(opt.Root, opt.Force, opt.Verbose)
 	}
 }
