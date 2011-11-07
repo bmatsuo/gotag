@@ -21,7 +21,35 @@ import (
 	"log"
 	"fmt"
 	"os"
+	"io"
 )
+
+type tabbedwriter struct {
+	io.Writer
+	written bool
+}
+
+func Tabbed(wr io.Writer) *tabbedwriter {
+	return &tabbedwriter{Writer:wr}
+}
+
+func (tw *tabbedwriter) Write(p []byte) (int, error) {
+	if !tw.written {
+		tw.written = true
+		n, err := tw.Writer.Write([]byte{'\t'})
+		if n != 1 || err != nil {
+			return n, err
+		}
+	}
+	// TODO replace with an efficient loop that doesn't allocate an array.
+	q := bytes.Replace(p, []byte{'\n'}, []byte("\n\t"), -1)
+	n, err := tw.Writer.Write(q)
+	if n != len(q) {
+		r := bytes.Replace(q[:n], []byte("\n\t"), []byte{'\n'}, -1)
+		return len(r), err
+	}
+	return len(p), err
+}
 
 var tfuncs = template.FuncMap{
 	"quote": func(x interface{}) (string, error) {
@@ -72,7 +100,10 @@ func CmdTemplateScript(sh script.Scriptor, dir string, cmds ...ShellCmd) script.
 	if err != nil {
 		log.Println(err)
 	}
-	return sh.NewScript(string(buff.Bytes()))
+	s := sh.NewScript(string(buff.Bytes()))
+	s.SetStdout(Tabbed(os.Stdout))
+	s.SetStderr(Tabbed(os.Stderr))
+	return s
 }
 
 var archlinker = map[string]string{
@@ -185,7 +216,7 @@ func MakeTag(root string, force bool, verbose bool) {
 	}
 }
 
-func UpdateTags(root, install string) {
+func UpdateTags(root, install string, verbose bool) {
 	var git Repository
 	var err error
 	git, err = NewGitRepo(root)
@@ -194,8 +225,12 @@ func UpdateTags(root, install string) {
 	fmt.Fprintf(os.Stderr, "Updating tags in %s\n", ReadablePackagePath(install))
 	Must(git.TagsFetch())
 	if install != "" {
-		fmt.Fprint(os.Stderr, "Pushing tags to remote repository\n")
-		_, err := CmdTemplateScript(script.Bash, ".", ShellCmd{"goinstall", "-u", install}).Execute()
+		fmt.Fprintf(os.Stderr, "Goinstalling %s\n", install)
+		goinstall := ShellCmd{"goinstall", "-u", install}
+		if verbose {
+			goinstall = append(goinstall[:2], "-v", install)
+		}
+		_, err := CmdTemplateScript(script.Bash, ".", goinstall).Execute()
 		Must(err)
 	}
 }
@@ -206,9 +241,9 @@ func main() {
 	opt = parseFlags()
 	if opt.Refresh {
 		if opt.Install {
-			UpdateTags(opt.Root, opt.ImportPath)
+			UpdateTags(opt.Root, opt.ImportPath, opt.Verbose)
 		} else {
-			UpdateTags(opt.Root, "")
+			UpdateTags(opt.Root, "", opt.Verbose)
 		}
 	} else {
 		MakeTag(opt.Root, opt.Force, opt.Verbose)
