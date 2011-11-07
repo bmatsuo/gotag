@@ -80,14 +80,12 @@ func (repo *gitRepo) TagDelete(tag string) error {
 // If there is an extra value, it is used as a tag annotation.
 // Remaining extra values (e.g. commit hash) will be appended to the command.
 func (repo *gitRepo) Tag(name string, extra ...string) error {
-	tagcmd := ShellCmd{"git", "tag"}
+	tagcmd := ShellCmd{"git", "tag", name}
 	if len(extra) > 0 {
-		tagcmd = append(tagcmd,
-			append(
-				ShellCmd{"-a", "-m", extra[0], name},
-				ShellCmd(extra[1:])...)...)
-	} else {
-		tagcmd = append(tagcmd, name)
+		// Remove the name on the end, insert an annotation, append extra[1:].
+		tagcmd = append(
+			append(tagcmd[:len(tagcmd)-1], "-a", "-m", extra[0], name),
+			ShellCmd(extra[1:])...)
 	}
 	tagscript := CmdTemplateScript(repo.shell, repo.root, tagcmd)
 	_, err := tagscript.Execute()
