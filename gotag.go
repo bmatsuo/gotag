@@ -128,7 +128,7 @@ func main() {
 	git, err = NewGitRepo(root)
 	Must(err)
 
-	if opt.Commit != "" { // Its OK to tag past commits if the HEAD is dirty.
+	if opt.Commit == "" { // It's OK to tag past commits if the HEAD is dirty.
 		clean, err := git.IsClean()
 		Must(err)
 		if !clean {
