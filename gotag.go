@@ -12,6 +12,7 @@ package main
 
 import (
 	"github.com/bmatsuo/go-script/script"
+	"path/filepath"
 	"template"
 	"runtime"
 	"strconv"
@@ -48,6 +49,13 @@ var cmdtemplates = `
 `
 
 var templates = template.SetMust(new(template.Set).Funcs(tfuncs).Parse(cmdtemplates))
+
+func PackagePath(importpath string) string {
+	return filepath.Join(runtime.GOROOT(), "src", "pkg", importpath)
+}
+func ReadablePackagePath(importpath string) string {
+	return filepath.Join("$GOROOT", "src", "pkg", importpath)
+}
 
 type ShellCmd []string
 
@@ -172,7 +180,7 @@ func MakeTag(root string, force bool, verbose bool) {
 	}
 
 	if opt.Push {
-		fmt.Fprintf(os.Stderr, "Pushing tags to remote repository\n")
+		fmt.Fprint(os.Stderr, "Pushing tags to remote repository\n")
 		Must(git.TagsPush())
 	}
 }
@@ -182,8 +190,11 @@ func UpdateTags(root, install string) {
 	var err error
 	git, err = NewGitRepo(root)
 	Must(err)
+
+	fmt.Fprintf(os.Stderr, "Updating tags in %s\n", ReadablePackagePath(install))
 	Must(git.TagsFetch())
 	if install != "" {
+		fmt.Fprint(os.Stderr, "Pushing tags to remote repository\n")
 		_, err := CmdTemplateScript(script.Bash, ".", ShellCmd{"goinstall", "-u", install}).Execute()
 		Must(err)
 	}
@@ -195,7 +206,7 @@ func main() {
 	opt = parseFlags()
 	if opt.Refresh {
 		if opt.Install {
-			UpdateTags(opt.Root, opt.Update)
+			UpdateTags(opt.Root, opt.ImportPath)
 		} else {
 			UpdateTags(opt.Root, "")
 		}

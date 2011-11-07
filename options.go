@@ -11,8 +11,6 @@ package main
  */
 
 import (
-	"path/filepath"
-	"runtime"
 	"flag"
 	"fmt"
 	"os"
@@ -36,21 +34,21 @@ var (
 //  A struct that holds parsed option values.
 //  TODO: Customize this struct with options for gotag
 type options struct {
-	Update	string
-	Refresh bool
-	Install bool
-	Root    string
-	Fetch   bool
-	Push    bool
-	Force   bool
-	Commit  string
-	Verbose bool
+	ImportPath string
+	Refresh    bool
+	Install    bool
+	Root       string
+	Fetch      bool
+	Push       bool
+	Force      bool
+	Commit     string
+	Verbose    bool
 }
 
 //  Create a flag.FlagSet to parse the command line options/arguments.
 func setupFlags(opt *options) *flag.FlagSet {
 	fs := flag.NewFlagSet("gotag", flag.ExitOnError)
-	fs.StringVar(&opt.Update, "u", "", "Update tags in a package directory (don't make tags).")
+	fs.StringVar(&opt.ImportPath, "u", "", "Update tags in a package directory (don't make tags).")
 	fs.BoolVar(&opt.Install, "i", false, "Install IMPORT after updating with -u.")
 	fs.StringVar(&opt.Commit, "commit", "", "Specify commit to tag.")
 	fs.BoolVar(&opt.Fetch, "fetch", true, "Fetch remote tags before creating new tags.")
@@ -66,17 +64,16 @@ func setupFlags(opt *options) *flag.FlagSet {
 //  with a non-zero exitcode when errors are encountered.
 func verifyFlags(opt *options, fs *flag.FlagSet) {
 	opt.Root = "."
-	if opt.Update != "" {
+	if opt.ImportPath != "" {
 		opt.Refresh = true
-		goroot := runtime.GOROOT()
-		opt.Root = filepath.Join(goroot, "src", "pkg", opt.Update)
+		opt.Root = PackagePath(opt.ImportPath)
 		if info, err := os.Stat(opt.Root); err != nil {
 			fs.Usage()
 			fmt.Fprintf(os.Stderr, "stat error: %s\n", err.Error())
 			os.Exit(1)
 		} else if !info.IsDirectory() {
 			fs.Usage()
-			fmt.Fprintf(os.Stderr, "expanded IMPORT %s is not a directory\n", opt.Root)
+			fmt.Fprintf(os.Stderr, "IMPORT %s is not a directory\n", ReadablePackagePath(opt.ImportPath))
 			os.Exit(1)
 		}
 	}
