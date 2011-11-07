@@ -119,6 +119,7 @@ func main() {
 		log.Printf("     Tag: %s", gotag)
 	}
 
+	fmt.Print("Verifying project build integrity.\n")
 	var project GoProject
 	project, err = NewProject(root)
 	Must(err)
